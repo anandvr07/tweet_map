@@ -4,10 +4,10 @@ import mysql.connector
 # create database tweetmapy;
 # use tweetmapy;
 # create table twitterdata (
-# tweet_id INT NOT NULL UNIQUE,
-# latitude FLOAT,
-# longitude FLOAT,
-# search_key VARCHAR(20)
+# tweet_id BIGINT NOT NULL UNIQUE,
+# latitude FLOAT(10,6),
+# longitude FLOAT(10,6),
+# search_key VARCHAR(50)
 # );
 
 db = mysql.connector.connect(host="localhost",user="root",password="",database="tweetmapy")
