@@ -5,6 +5,7 @@ import mysql.connector
 # use tweetmapy;
 # create table twitterdata (
 # tweet_id BIGINT NOT NULL UNIQUE,
+# date DATETIME,
 # latitude FLOAT(10,6),
 # longitude FLOAT(10,6),
 # search_key VARCHAR(50)
@@ -28,9 +29,10 @@ try:
    results = cursor.fetchall()
    for row in results:
       tweet_id = row[0]
-      latitude = row[1]
-      longitude = row[2]
-      search_key = row[3]
+      date = row[1]
+      latitude = row[2]
+      longitude = row[3]
+      search_key = row[4]
       
       res_dict = dict(tweet_id=tweet_id, latitude=latitude, longitude=longitude, search_key=search_key)
 

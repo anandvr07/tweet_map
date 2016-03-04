@@ -22,12 +22,13 @@ tweets = api.search(q=search_string,count=5)
 for tweet in tweets:
 
 	tweet_id = tweet.id
-	coordinates = api.get_status(tweet_id).place.bounding_box.coordinates[0]
+	date = tweet.created_at
 
-	latitude = (coordinates[0][0] + coordinates[2][0])/2
-	longitute = (coordinates[0][1] + coordinates[2][1])/2
+	coordinates = api.get_status(tweet_id).place.bounding_box.coordinates[0]
+	longitute = (coordinates[0][0] + coordinates[2][0])/2
+	latitude = (coordinates[0][1] + coordinates[2][1])/2
 	
-	sql_query = "INSERT INTO twitterdata values('%d','%f','%f','%s')" % (tweet_id,latitude,longitute,search_string)
+	sql_query = "INSERT INTO twitterdata values('%d','%s','%f','%f','%s')" % (tweet_id,date,latitude,longitute,search_string)
 	
 	try:
 	   cursor.execute(sql_query)
