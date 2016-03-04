@@ -1,16 +1,16 @@
 import mysql.connector
 
 # > mysql
-# create database twittmapy;
-# use twittmapy;
+# create database tweetmapy;
+# use tweetmapy;
 # create table twitterdata (
-# twitt_id INT NOT NULL UNIQUE,
+# tweet_id INT NOT NULL UNIQUE,
 # latitude FLOAT,
 # longitude FLOAT,
 # search_key VARCHAR(20)
 # );
 
-db = mysql.connector.connect(host="localhost",user="root",password="",database="twittmapy")
+db = mysql.connector.connect(host="localhost",user="root",password="",database="tweetmapy")
 cursor = db.cursor()
 
 sql_query = "INSERT INTO twitterdata values(4,1.1,-2.6,'hello')"
@@ -27,12 +27,12 @@ try:
    
    results = cursor.fetchall()
    for row in results:
-      twitt_id = row[0]
+      tweet_id = row[0]
       latitude = row[1]
       longitude = row[2]
       search_key = row[3]
       
-      res_dict = dict(twitt_id=twitt_id, latitude=latitude, longitude=longitude, search_key=search_key)
+      res_dict = dict(tweet_id=tweet_id, latitude=latitude, longitude=longitude, search_key=search_key)
 
       print res_dict
 except:
