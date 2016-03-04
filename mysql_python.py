@@ -13,7 +13,7 @@ import mysql.connector
 db = mysql.connector.connect(host="localhost",user="root",password="",database="tweetmapy")
 cursor = db.cursor()
 
-sql_query = "INSERT INTO twitterdata values(4,1.1,-2.6,'hello')"
+sql_query = "INSERT INTO twitterdata values('705675654323429376','-73.948775','40.655138','testtest112233testtest')"
 try:
    cursor.execute(sql_query)
    db.commit()
