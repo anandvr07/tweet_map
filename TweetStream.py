@@ -1,70 +1,72 @@
+import json
+import random
 import tweepy
+
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
 
-import mysql.connector
-import json
-import random
+
 
 consumer_key = "DUrj1zOO3DvpCZ7jGEpfvYUqp"
 consumer_secret = "6uLgyG0iD9uvukZYUHOaYCteZF3DyxsBRamBytaPdksflg0ZbS"
+
 access_token =  "293078152-Ev9SvJ6k77VObLBByUlAzeDxP54qvK75MzUGDTmf"
 access_token_secret = "FRfs5pOaETAmrncX4icB7i3cNLkhGQkFz2LpELHnPXxKe"
 
-db = mysql.connector.connect(host="localhost",user="root",password="",database="tweetmapy")
-cursor = db.cursor()
+
+search_key_array = ["donald trump", "barack obama", "india", "america", "ronaldo", "messi", "twitter", "facebook", "house of cards", "super bowl"]
+
+track_string = search_key_array[0]
+for index in range(len(search_key_array)-1):
+    track_string += " , %s" % search_key_array[index+1]
 
 
-#This is a basic listener that just prints received tweets to stdout.
 class StdOutListener(StreamListener):
     def on_data(self, data):
-        #print data
         
         tweet = json.loads(data)
 
-        tweet_id = tweet['id']
+        search_key = ""
+        for key in search_key_array:
+            if key in str(tweet).lower():
+                search_key = key
+                break
 
-        date = tweet['created_at']
+        try:
 
-        # if tweet['geo'] :
-        #     coordinates = tweet['geo']['coordinates']
-        #     latitude = coordinates[0]
-        #     longitute = coordinates[1]
+            if tweet.has_key('id'):
+                tweet_id = tweet['id']
 
-        if tweet['coordinates'] :
-            coordinates = tweet['coordinates']['coordinates']
-            longitute = coordinates[0]
-            latitude = coordinates[1]
+            if tweet.has_key('created_at'):
+                date = tweet['created_at']
 
-        elif tweet['place'] :
-            coordinates = tweet['place']['bounding_box']['coordinates'][0]
-            longitute = (coordinates[0][0] + coordinates[2][0])/2
-            latitude = (coordinates[0][1] + coordinates[2][1])/2
+            if tweet['coordinates']:
+                coordinates = tweet['coordinates']['coordinates']
+                longitude = coordinates[0]
+                latitude = coordinates[1]
+                
+            elif tweet['place'] and tweet['place']['bounding_box'] and tweet['place']['bounding_box']['coordinates']:
+                coordinates = tweet['place']['bounding_box']['coordinates'][0]
+                longitude = (coordinates[0][0] + coordinates[2][0])/2
+                latitude = (coordinates[0][1] + coordinates[2][1])/2
 
-        print longitute
-        print latitude
+            else :
+                return True
 
-        # elif tweet['location'] :
-        #     print "tweet - location"
-        #     print tweet['location'] 
-        #     coordinates = tweet['location']['geo']['coordinates'][0]
-        #     print coordinates
-        #     longitute = (coordinates[0][0] + coordinates[2][0])/2
-        #     latitude = (coordinates[0][1] + coordinates[2][1])/2
-        #     print longitute
-        #     print latitude
-
-        else :
+        except:
             return True
+
+        #print search_key, tweet_id, latitude, longitude
+        es.index(index="twitterdata", doc_type="twitter_doc", id=tweet_id, body={"date": date, "latitude": latitude, "longitude": longitude, "search_key": search_key})
 
         return True
 
     def on_error(self, status):
         print status
+        return True
 
 def main():
-    #This handles Twitter authetification and the connection to Twitter Streaming API
     listener = StdOutListener()
     auth = OAuthHandler(consumer_key, consumer_secret)
     auth.set_access_token(access_token, access_token_secret)
@@ -72,9 +74,7 @@ def main():
 
     while True:
         try:
-            # This line filter Twitter Streams to capture data by the keywords: 'python', 'javascript', 'ruby'
-            # stream.filter(locations=[-125,25,-65,48], async=False)
-            stream.filter(track=["donald trump"])
+            stream.filter(track=[track_string])
             break
         except tweepy.TweepError:
             nsecs=random.randint(60,63)
