@@ -1,11 +1,15 @@
 import json
 import random
 import tweepy
+import datetime
 
 from tweepy.streaming import StreamListener
 from tweepy import OAuthHandler
 from tweepy import Stream
 
+import requests
+from requests_aws4auth import AWS4Auth
+from elasticsearch import Elasticsearch, RequestsHttpConnection
 
 
 consumer_key = "DUrj1zOO3DvpCZ7jGEpfvYUqp"
@@ -14,6 +18,20 @@ consumer_secret = "6uLgyG0iD9uvukZYUHOaYCteZF3DyxsBRamBytaPdksflg0ZbS"
 access_token =  "293078152-Ev9SvJ6k77VObLBByUlAzeDxP54qvK75MzUGDTmf"
 access_token_secret = "FRfs5pOaETAmrncX4icB7i3cNLkhGQkFz2LpELHnPXxKe"
 
+host = 'search-tweetmapy-57ul44asdc75otokgszjvdy7uq.us-east-1.es.amazonaws.com'
+AWS_ACCESS_KEY = "YOUR AWS_ACCESS_KEY"
+AWS_SECRET_KEY = "YOUR AWS_SECRET_KEY"
+REGION = "us-east-1"
+
+awsauth = AWS4Auth(AWS_ACCESS_KEY, AWS_SECRET_KEY, REGION, 'es')
+
+es = Elasticsearch(
+    hosts=[{'host': host, 'port': 443}],
+    http_auth=awsauth,
+    use_ssl=True,
+    verify_certs=True,
+    connection_class=RequestsHttpConnection
+)
 
 search_key_array = ["donald trump", "barack obama", "india", "america", "ronaldo", "messi", "twitter", "facebook", "house of cards", "super bowl"]
 
@@ -38,9 +56,6 @@ class StdOutListener(StreamListener):
             if tweet.has_key('id'):
                 tweet_id = tweet['id']
 
-            if tweet.has_key('created_at'):
-                date = tweet['created_at']
-
             if tweet['coordinates']:
                 coordinates = tweet['coordinates']['coordinates']
                 longitude = coordinates[0]
@@ -57,8 +72,8 @@ class StdOutListener(StreamListener):
         except:
             return True
 
-        #print search_key, tweet_id, latitude, longitude
-        es.index(index="twitterdata", doc_type="twitter_doc", id=tweet_id, body={"date": date, "latitude": latitude, "longitude": longitude, "search_key": search_key})
+        # print search_key, tweet_id, latitude, longitude
+        es.index(index="twitterdata_test", doc_type="twitter_doc", id=tweet_id, body={"latitude": latitude, "longitude": longitude, "search_key": search_key})
 
         return True
 
