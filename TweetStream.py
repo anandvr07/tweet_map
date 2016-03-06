@@ -73,7 +73,7 @@ class StdOutListener(StreamListener):
             return True
 
         # print search_key, tweet_id, latitude, longitude
-        es.index(index="twitterdata_test", doc_type="twitter_doc", id=tweet_id, body={"latitude": latitude, "longitude": longitude, "search_key": search_key})
+        es.index(index="twitterdata", doc_type="twitter_doc", id=tweet_id, body={"latitude": latitude, "longitude": longitude, "search_key": search_key})
 
         return True
 
