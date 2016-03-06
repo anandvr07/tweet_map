@@ -1,6 +1,7 @@
 import tweepy
 import mysql.connector
 
+
 db = mysql.connector.connect(host="localhost",user="root",password="",database="tweetmapy")
 cursor = db.cursor()
 
@@ -15,23 +16,25 @@ auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
-search_string = "testtest112233testtest"
+search_key = "donald trump"
+search_string = "'%s' since:2016-03-01" % search_key
 
-tweets = api.search(q=search_string,count=5)
+tweets = api.search(q=search_string,count=100)
 
 for tweet in tweets:
 
 	tweet_id = tweet.id
 	date = tweet.created_at
 
-	coordinates = api.get_status(tweet_id).place.bounding_box.coordinates[0]
-	longitute = (coordinates[0][0] + coordinates[2][0])/2
-	latitude = (coordinates[0][1] + coordinates[2][1])/2
-	
-	sql_query = "INSERT INTO twitterdata values('%d','%s','%f','%f','%s')" % (tweet_id,date,latitude,longitute,search_string)
-	
-	try:
-	   cursor.execute(sql_query)
-	   db.commit()
-	except:
-	   db.rollback()
+	if tweet._json.get('place'):
+		coordinates = api.get_status(tweet_id).place.bounding_box.coordinates[0]
+		longitute = (coordinates[0][0] + coordinates[2][0])/2
+		latitude = (coordinates[0][1] + coordinates[2][1])/2
+		
+		sql_query = "INSERT INTO twitterdata values('%d','%s','%f','%f','%s')" % (tweet_id,date,latitude,longitute,search_string)
+		
+		try:
+		   cursor.execute(sql_query)
+		   db.commit()
+		except:
+		   db.rollback()
