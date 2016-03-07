@@ -1,6 +1,7 @@
 import json
 import random
 import tweepy
+import time
 import datetime
 
 from tweepy.streaming import StreamListener
@@ -55,7 +56,11 @@ class StdOutListener(StreamListener):
 
             if tweet.has_key('id'):
                 tweet_id = tweet['id']
-
+             
+            if tweet.has_key('created_at'):
+                dateTime = time.strftime('%Y-%m-%d %H:%M:%S', time.strptime(tweet['created_at'],'%a %b %d %H:%M:%S +0000 %Y'))
+                date = datetime.datetime.strptime(dateTime, "%Y-%m-%d %H:%M:%S")
+                
             if tweet['coordinates']:
                 coordinates = tweet['coordinates']['coordinates']
                 longitude = coordinates[0]
@@ -72,8 +77,8 @@ class StdOutListener(StreamListener):
         except:
             return True
 
-        # print search_key, tweet_id, latitude, longitude
-        es.index(index="twitterdata", doc_type="twitter_doc", id=tweet_id, body={"latitude": latitude, "longitude": longitude, "search_key": search_key})
+        # print search_key, tweet_id, latitude, longitude, date
+        es.index(index="twitterdata", doc_type="twitter_doc", id=tweet_id, body={"date":date, "latitude": latitude, "longitude": longitude, "search_key": search_key})
 
         return True
 
