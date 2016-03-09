@@ -1,133 +1,212 @@
 <html>
-   <head>
-      <meta charset="utf-8">
-      <title>TweetMapy</title>
-      <style>
-         #h2 {
-         font: 200 30px/1 'Merienda One', Helvetica, sans-serif;
-         color: #FC9504;
-         text-shadow: 3px 3px 0px rgba(0,0,0,0.1), 7px 7px 0px rgba(0,0,0,0.05);
-         text-align:center;
-         }
-         #h3 {
-         font: 200 15px/1.3 'Merienda One', Helvetica, sans-serif;
-         color: #FC9504;  
-         }
-         #h4 {
-         font: 200 15px/1.3 'Merienda One', Helvetica, sans-serif;
-         color: #FEFBFB;
-         }
-      </style>
-      <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
-      <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
-      <script>
-         var map, pointarray, heatmap;
-         var taxiData = [];
-         
-         function initialize() {
-           var mapOptions = {
-             zoom: 2,
-             center: new google.maps.LatLng(40.52,4.34),
-             mapTypeId: google.maps.MapTypeId.ROADMAP
-           };
-           map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
-         }
-         
-         function pin() {
-           initialize();
-          for (i = 0; i < taxiData.length; i++) {  
-             var latD = taxiData[i].lat();
-             var lngD = taxiData[i].lng();
-               marker = new google.maps.Marker({  
-                 //animation: google.maps.Animation.DROP,
-                 position: new google.maps.LatLng(latD, lngD),
-                 map: map  
-           });
-         }
-         
-         }
-         
-         
-          function heat() {
-           initialize();
-           var pointArray = new google.maps.MVCArray(taxiData);
-           heatmap = new google.maps.visualization.HeatmapLayer({
-             data: pointArray,
-             radius: 25
-           });
-           heatmap.setMap(map);
-         }
-         
-         
-         
-          $(document).on('click', '.toggle-button', function() {
-             $(this).toggleClass('toggle-button-selected'); 
-         });
-         google.maps.event.addDomListener(window, 'load', initialize); 
-         
-         
-         
-         function elasticsearch(search_key_data){
-         
-         if(search_key_data == "- Select Keyword -")
-         {
-           taxiData = []
-           heat()
-         }
-         else
-         {
-             $("#search_key").val(search_key_data);
-             var searchK = $('#search_key').val()
-         
-                   $.ajax({
-                     url: '/search',
-                     data: $('form').serialize(),
-                     type: 'POST',
-                     success: function(response) {
-                         console.log(response);
-                       
-                           var jsonResponse = $.parseJSON(response);
-                           
-                           taxiData = []
-                           
-                 for (var i=0;i<jsonResponse.length;++i)
-                 {
-                     taxiData[i] = new google.maps.LatLng(jsonResponse[i].latitude, jsonResponse[i].longitude)
-                 }
-         
-                     
-                     if(document.getElementById('heatMap').checked) {
-                       heat();  
-                     }
-                     else if(document.getElementById('pinMap').checked) {
-                       pin();
-                     }
-         
-                     },
-                     error: function(error) {
-                         console.log(error);
-                     }
-                 });
-         
-         }
-         
-         }
-          
-           
-      </script>
 
-   </head>
-   <body bgcolor="rgb(100,100,100)">
-      <link href='http://fonts.googleapis.com/css?family=Merienda+One' rel='stylesheet' type='text/css'>
-      <div id="h2">
-         <h1>TweetMapy</h1>
-      </div>
-      <div id="map-canvas" style="position:absolute;left:200px;top:100px;width:1050px;height:570px"> </div>
-      <div id="h3" style="position:absolute;left:40px;top:200px;">
-         <h3>Tweet Keywords</h3>
-      </div>
-      <div id="drop" style="position:absolute;left:40px;top:250px;width:200px;height:20px;">
-         <select onchange="elasticsearch(this.value);">
+<head>
+    <meta charset="utf-8">
+    <title>TweetMapy</title>
+    <style>
+        #h2 {
+            font: 200 30px/1 'Merienda One', Helvetica, sans-serif;
+            color: #FC9504;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.1), 7px 7px 0px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        #h3 {
+            font: 200 15px/1.3 'Merienda One', Helvetica, sans-serif;
+            color: #FC9504;
+        }
+        #h4 {
+            font: 200 15px/1.3 'Merienda One', Helvetica, sans-serif;
+            color: #FCFFFF;
+        }
+    </style>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization"></script>
+    <script>
+        var map, pointarray, heatmap;
+        var taxiData = [];
+        var gmarkers = [];
+
+        var cur_zoom = 2;
+        
+        function initialize() {
+
+                if(map) cur_zoom = map.getZoom();
+                
+                var mapOptions = {
+                    zoom: cur_zoom,
+                    center: new google.maps.LatLng(40.52, 4.34),
+                    mapTypeId: google.maps.MapTypeId.ROADMAP
+                };
+                map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+                google.maps.event.addListener(map, "rightclick", function(event) {
+                    if (document.getElementById('heatMap').checked) {
+                        heat();
+                    } else if (document.getElementById('pinMap').checked) {
+                        pin();
+                    }
+                });
+
+
+                google.maps.event.addListener(map, "click", function(event) {
+                    var lat1_deg = event.latLng.lat();
+                    var lng1_deg = event.latLng.lng();
+
+
+                    user_radius = $('#input_radius').val(); //in kms
+                    earth_radius = 6371; //in kms
+                    k = 0;
+                    newTaxiData = [];
+
+                    for (i = 0; i < taxiData.length; i++) {
+                        lat1 = (Math.PI * lat1_deg) / 180;
+                        lng1 = (Math.PI * lng1_deg) / 180;
+
+                        var lat2 = taxiData[i].lat();
+                        var lng2 = taxiData[i].lng();
+                        lat2 = (Math.PI * lat2) / 180;
+                        lng2 = (Math.PI * lng2) / 180;
+
+                        dist = Math.acos((Math.sin(lat1) * Math.sin(lat2)) + (Math.cos(lat1) * Math.cos(lat2) * Math.cos(lng1 - lng2))) * earth_radius;
+                        if (dist <= user_radius) {
+                            newTaxiData[k++] = taxiData[i];
+                        }
+                    }
+
+                    initialize();
+
+                    var myCity = new google.maps.Circle({
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 2,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.25,
+                        map: map,
+                        center: new google.maps.LatLng(lat1_deg, lng1_deg),
+                        radius: user_radius * 1000
+                    });
+
+                    if (document.getElementById('heatMap').checked) {
+                        heatNew(newTaxiData);
+                    } else if (document.getElementById('pinMap').checked) {
+                        pinNew(newTaxiData);
+                    }
+
+                });
+
+
+            } //end of initialize
+
+        function pin() {
+            initialize();
+            for (i = 0; i < taxiData.length; i++) {
+                var latD = taxiData[i].lat();
+                var lngD = taxiData[i].lng();
+                marker = new google.maps.Marker({
+                    //animation: google.maps.Animation.DROP,
+                    position: new google.maps.LatLng(latD, lngD),
+                    map: map
+                });
+            }
+
+        }
+
+        function pinNew(newTaxiData) {
+            for (i = 0; i < newTaxiData.length; i++) {
+                var latD = newTaxiData[i].lat();
+                var lngD = newTaxiData[i].lng();
+                marker = new google.maps.Marker({
+                    position: new google.maps.LatLng(latD, lngD),
+                    map: map
+                });
+            }
+
+        }
+
+
+        function heat() {
+            initialize();
+            var pointArray = new google.maps.MVCArray(taxiData);
+            heatmap = new google.maps.visualization.HeatmapLayer({
+                data: pointArray,
+                radius: 25
+            });
+            heatmap.setMap(map);
+        }
+
+
+        function heatNew(newTaxiData) {
+            var pointArray = new google.maps.MVCArray(newTaxiData);
+            heatmap = new google.maps.visualization.HeatmapLayer({
+                data: pointArray,
+                radius: 25
+            });
+            heatmap.setMap(map);
+        }
+
+
+
+        $(document).on('click', '.toggle-button', function() {
+            $(this).toggleClass('toggle-button-selected');
+        });
+
+
+        google.maps.event.addDomListener(window, 'load', initialize);
+
+
+        function elasticsearch(search_key_data) {
+            if (search_key_data == "- Select Keyword -") {
+                taxiData = [];
+                initialize();
+            } else {
+                $("#search_key").val(search_key_data);
+                var searchK = $('#search_key').val()
+
+                $.ajax({
+                    url: '/search',
+                    data: $('form').serialize(),
+                    type: 'POST',
+                    success: function(response) {
+                        console.log(response);
+
+                        var jsonResponse = $.parseJSON(response);
+
+                        taxiData = []
+
+                        for (var i = 0; i < jsonResponse.length; ++i) {
+                            taxiData[i] = new google.maps.LatLng(jsonResponse[i].latitude, jsonResponse[i].longitude)
+                        }
+
+
+                        if (document.getElementById('heatMap').checked) {
+                            heat();
+                        } else if (document.getElementById('pinMap').checked) {
+                            pin();
+                        }
+
+                    },
+                    error: function(error) {
+                        console.log(error);
+                    }
+                });
+
+            }
+
+        }
+    </script>
+</head>
+
+<body bgcolor="rgb(100,100,100)">
+    <link href='http://fonts.googleapis.com/css?family=Merienda+One' rel='stylesheet' type='text/css'>
+    <div id="h2">
+        <h1>TweetMapy</h1>
+    </div>
+    <div id="map-canvas" style="position:absolute;left:200px;top:100px;width:1050px;height:570px"> </div>
+    <div id="h3" style="position:absolute;left:40px;top:100px;">
+        <h3>Tweet Keywords</h3>
+    </div>
+    <div id="drop" style="position:absolute;left:40px;top:150px;width:200px;height:20px;">
+        <select onchange="elasticsearch(this.value);">
             <option selected="true" value="- Select Keyword -"> - Select Keyword - </option>
             <option value="Donald Trump"> Donald Trump </option>
             <option value="Barack Obama"> Barack Obama </option>
@@ -138,17 +217,35 @@
             <option value="Ronaldo"> Ronaldo </option>
             <option value="Messi"> Messi </option>
             <option value="House of Cards"> House of Cards </option>
-         </select>
-      </div>
-      <div id="h3" style="position:absolute;left:40px;top:100px;">
-         <h3>Map Type</h3>
-      </div>
-      <form style="position:absolute;left:40px;top:150px;color:white" role="form">
-         <input type="radio" name="one" id="heatMap" checked="checked" onclick="heat()"> Heat Map<br>
-         <input type="radio" name="one" id="pinMap" onclick="pin()"> Pin Map
-      </form>
-      <form role="form" method="post">
-         <input name="search_key" id="search_key" value="" type="hidden">
-      </form>
-   </body>
+        </select>
+    </div>
+    <div id="h3" style="position:absolute;left:40px;top:180px;">
+        <h3>Map Type</h3>
+    </div>
+    <form style="position:absolute;left:40px;top:225px;color:white" role="form">
+        <input type="radio" name="one" id="heatMap" checked="checked" onclick="heat()"> <font face="Merienda One" color="#FCFFFF">Heat Map</font>
+        <br>
+        <input type="radio" name="one" id="pinMap" onclick="pin()"><font face="Merienda One" color="#FCFFFF"> Pin Map</font>
+    </form>
+    <form role="form" method="post">
+        <input name="search_key" id="search_key" value="" type="hidden">
+    </form>
+    <div id="h3" style="position:absolute;left:40px;top:300px;">
+        <h3>Radius (Kms)</h3>
+    </div>
+    <input name="input_radius" id="input_radius" value="3000" type="text" style="position:absolute;left:40px;top:350px">
+    <div id="h3" style="position:absolute;left:40px;top:390px;">
+        <h3>*Left Click</h3>
+    </div>
+    <div id="h4" style="position:absolute;left:60px;top:420px;">
+        <h4>Plot boundary</h4>
+    </div>
+    <div id="h3" style="position:absolute;left:40px;top:470px;">
+        <h3>*Right Click</h3>
+    </div>
+    <div id="h4" style="position:absolute;left:60px;top:500px;">
+        <h4>Clear boundary</h4>
+    </div>
+</body>
+
 </html>
